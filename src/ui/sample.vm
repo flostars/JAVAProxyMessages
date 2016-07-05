@@ -1,0 +1,269 @@
+<head>
+			 <link rel="stylesheet" href="css/public/css/bootstrap.min.css"/>
+
+
+    <!-- Optional theme -->
+
+    <link rel="stylesheet" href="css/public/css/custom.css"/>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+     
+    <!-- Latest compiled and minified JavaScript -->
+</head>
+<div id='processing'>
+  #if($processing)
+	  <a href="/startProcess">Search suggestion</a>
+	  <a href="/startProcess?checkExiting=true">Process saved suggestion</a>
+   	#else
+   	<a href="/stopProcess">Stop process data</a>
+   #end
+   <a href="/suggestion?page=1&filterKey=&sortBy=keyWord">all suggestions</a>
+</div>
+Total keyword found :$recordsInDB </br>
+
+<div id='byCount'></div></br>
+<form method='GET' name='search' action='/suggestion?page=1'> 
+   	Filter by generated word
+    <input class="inputSearchSmall" name="filterKey" value="$keyFilter">
+    <input type="hidden" id="sort_column_field" class="inputSearchSmall" name="sortBy">
+    <input type="hidden" id="sort_column_order" class="inputSearchSmall" name="orderBy">
+<a href="javascript:document.search.submit()">submit</a>
+
+<div class='pagenator'></div>
+<table id ='target_table_id' class='CSSTableGenerator'><tbody></tbody></table>
+</form>
+</br></br>
+<div class='pagenator2'> </div>
+
+
+
+
+<!-- Modal -->
+<div class="modal fade" id="idSuggestionHistory" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Founded suggestionFounds</h4>
+      </div>
+      <div class="modal-body">
+        ...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+
+
+
+
+
+
+generateReport();
+generatePagination();
+
+function generateReport(){
+ var count=$count
+ var tbData='';
+ var i=1;
+ for (key in count) {
+	 if(i++ ==5){
+		 tbData+=count[key]+" phrases with "+key+" suggestion,  </br>"
+	 }else{
+	  tbData+=count[key]+" phrases with "+key+" suggestion,  "
+	 }
+ }
+ $("#byCount").html(tbData);
+}
+
+function generatePagination(){
+	var pages = Math.floor($recordsInDB/50+1);
+	var filter = '$keyFilter'
+	var sortBy = '$sortBy'
+	var pagenatorElement =""
+	var currentPage=$currentPage;
+	var i=1
+	var maxPage = Math.min(i+10,pages);
+	if(currentPage >10){
+		i=currentPage-5;
+		maxPage=currentPage+5;
+	}
+	pagenatorElement+="Page  <a href='/suggestionFound?page="+1+"&filterKey="+filter+"&sortBy="+sortBy+"'><<</a>&nbsp";
+	for(;i<=maxPage;i++){
+		if(i==currentPage){
+			pagenatorElement+="&nbsp"+i+"&nbsp";
+		}else{
+			pagenatorElement+="<a href='/suggestionFound?page="+i+"&filterKey="+filter+"&sortBy="+sortBy+"'>"+i+"</a>&nbsp";
+		}
+	}
+	pagenatorElement+="<a href='/suggestionFound?page="+pages+"&filterKey="+filter+"&sortBy="+sortBy+"'>>></a>&nbsp";
+	$(".pagenator").html(pagenatorElement);
+	$(".pagenator2").html(pagenatorElement);
+}
+
+$(document).ready(function(){
+	 $('.sortable').on('click', function(){
+		 $('#sort_column_field').val($(this).data('sort-column'));
+		 var order =$(this).data('order');
+		 console.log(order)
+		 if(order=='asc'){
+			 order='desc';
+		 }else{
+			 order='asc';
+		 }
+		 console.log(order)
+		 $(this).data('order',order)
+		 $('#sort_column_order').val(order);
+		$(this).closest('form').submit();
+ 	});
+ 	
+ 	$('.history-button').on('click', function(){
+ 		$('#idSuggestionHistory .modal-body').html('loading data...');
+ 		var url='/showHistoricaldata?key=' + $(this).data('key');
+		jQuery.get(url,function(data){
+			$('#idSuggestionHistory .modal-body').html(data);
+		});
+ 	});
+});
+
+
+ var object =$json;
+ var order =$order;
+ console.log(order)
+ var orderPosition;
+ if(order){
+	 orderPosition='desc';
+ }else{
+	 orderPosition='asc';
+ }
+ var tbl_body = "<tr><td>Position</td><td class='sortable' data-sort-column='keyWord' data-order='"+orderPosition+"'> generated word </td> <td class='sortable' data-sort-column='count' data-order='"+orderPosition+"'>Count </td> <td class='sortable' data-sort-column='valuesFirst' data-order='"+orderPosition+"'> value </td><td>suggestion</td></tr>";
+ var odd_even = false;
+ var position =1;
+ for (key in object) {
+        var tbl_row = "";
+        var value = object[key];
+        var count = value['count'];
+        var button='<button type="button" class="history-button" data-toggle="modal" data-target="#idSuggestionHistory" data-key="'+value["key"]+'">show new suggestions</button>'
+        
+        tbl_row += "<td width='3%'>"+position++ +"</td><td width='15%'>"+value['key']+"</td> <td width='3%'>"+count+"</td><td width='55%'>"+replaceAll(value['values'],",  ,"," ")+"</td><td width='25%'>"+button+"</td>";
+        tbl_body += "<tr class=\""+( odd_even ? "odd" : "even")+"\">"+tbl_row+"</tr>";
+        odd_even = !odd_even;                
+ }
+ $("#target_table_id tbody").html(tbl_body);
+ 
+function replaceAll(str, find, replace) {
+  return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
+}
+function escapeRegExp(str) {
+    return str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+}
+  
+</script>
+
+
+<style>
+.CSSTableGenerator {
+	margin:0px;padding:0px;
+	width:100%;
+	box-shadow: 10px 10px 5px #888888;
+	border:1px solid #000000;
+	
+	-moz-border-radius-bottomleft:0px;
+	-webkit-border-bottom-left-radius:0px;
+	border-bottom-left-radius:0px;
+	
+	-moz-border-radius-bottomright:0px;
+	-webkit-border-bottom-right-radius:0px;
+	border-bottom-right-radius:0px;
+	
+	-moz-border-radius-topright:0px;
+	-webkit-border-top-right-radius:0px;
+	border-top-right-radius:0px;
+	
+	-moz-border-radius-topleft:0px;
+	-webkit-border-top-left-radius:0px;
+	border-top-left-radius:0px;
+}.CSSTableGenerator table{
+    border-collapse: collapse;
+        border-spacing: 0;
+	width:100%;
+	height:100%;
+	margin:0px;padding:0px;
+}.CSSTableGenerator tr:last-child td:last-child {
+	-moz-border-radius-bottomright:0px;
+	-webkit-border-bottom-right-radius:0px;
+	border-bottom-right-radius:0px;
+}
+.CSSTableGenerator table tr:first-child td:first-child {
+	-moz-border-radius-topleft:0px;
+	-webkit-border-top-left-radius:0px;
+	border-top-left-radius:0px;
+}
+.CSSTableGenerator table tr:first-child td:last-child {
+	-moz-border-radius-topright:0px;
+	-webkit-border-top-right-radius:0px;
+	border-top-right-radius:0px;
+}.CSSTableGenerator tr:last-child td:first-child{
+	-moz-border-radius-bottomleft:0px;
+	-webkit-border-bottom-left-radius:0px;
+	border-bottom-left-radius:0px;
+}.CSSTableGenerator tr:hover td{
+	
+}
+.CSSTableGenerator tr:nth-child(odd){ background-color:#ffaa56; }
+.CSSTableGenerator tr:nth-child(even)    { background-color:#ffffff; }.CSSTableGenerator td{
+	vertical-align:middle;
+	
+	
+	border:1px solid #000000;
+	border-width:0px 1px 1px 0px;
+	text-align:left;
+	padding:7px;
+	font-size:10px;
+	font-family:Arial;
+	font-weight:normal;
+	color:#000000;
+}.CSSTableGenerator tr:last-child td{
+	border-width:0px 1px 0px 0px;
+}.CSSTableGenerator tr td:last-child{
+	border-width:0px 0px 1px 0px;
+}.CSSTableGenerator tr:last-child td:last-child{
+	border-width:0px 0px 0px 0px;
+}
+.CSSTableGenerator tr:first-child td{
+		background:-o-linear-gradient(bottom, #ff7f00 5%, #bf5f00 100%);	background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #ff7f00), color-stop(1, #bf5f00) );
+	background:-moz-linear-gradient( center top, #ff7f00 5%, #bf5f00 100% );
+	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr="#ff7f00", endColorstr="#bf5f00");	background: -o-linear-gradient(top,#ff7f00,bf5f00);
+
+	background-color:#ff7f00;
+	border:0px solid #000000;
+	text-align:center;
+	border-width:0px 0px 1px 1px;
+	font-size:14px;
+	font-family:Arial;
+	font-weight:bold;
+	color:#ffffff;
+}
+.CSSTableGenerator tr:first-child:hover td{
+	background:-o-linear-gradient(bottom, #ff7f00 5%, #bf5f00 100%);	background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #ff7f00), color-stop(1, #bf5f00) );
+	background:-moz-linear-gradient( center top, #ff7f00 5%, #bf5f00 100% );
+	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr="#ff7f00", endColorstr="#bf5f00");	background: -o-linear-gradient(top,#ff7f00,bf5f00);
+
+	background-color:#ff7f00;
+}
+.CSSTableGenerator tr:first-child td:first-child{
+	border-width:0px 0px 1px 0px;
+}
+.CSSTableGenerator tr:first-child td:last-child{
+	border-width:0px 0px 1px 1px;
+}
+
+body{
+	padding:10px;
+}
+</style>
